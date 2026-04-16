@@ -69,6 +69,28 @@ def get_results_by_search_id(config, search_id):
     
     return rows
 
+def get_all_results_with_metadata(config):
+    db_path = get_db_path(config)
+    if not os.path.exists(db_path):
+        return []
+    
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    query = '''
+        SELECT 
+            s.id as search_id, 
+            s.timestamp, 
+            r.total_price
+        FROM searches s
+        JOIN results r ON s.id = r.search_id
+        ORDER BY s.timestamp ASC
+    '''
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
 def reset_db(config):
     db_path = get_db_path(config)
     if os.path.exists(db_path):

@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 def html_make_clickable(row) -> str:
@@ -48,4 +49,84 @@ def export_to_file(df, filename: str, config: dict, styled_df):
         f.write(f"<h3>{result_count} results</h3>\n")
         f.write(html_stat_list)
         f.write(html_table)
+        f.write("\n</body>\n</html>")
+
+def export_monitor_report(stats_df, filename: str):
+    labels = stats_df['timestamp'].tolist()
+    mean_prices = stats_df['mean_price'].tolist()
+    median_prices = stats_df['median_price'].tolist()
+    counts = stats_df['result_count'].tolist()
+    
+    chart_js_script = f"""
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const labels = {json.dumps(labels)};
+        
+        const priceCtx = document.getElementById('priceChart').getContext('2d');
+        new Chart(priceCtx, {{
+            type: 'line',
+            data: {{
+                labels: labels,
+                datasets: [
+                    {{
+                        label: 'Mean Price',
+                        data: {json.dumps(mean_prices)},
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }},
+                    {{
+                        label: 'Median Price',
+                        data: {json.dumps(median_prices)},
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }}
+                ]
+            }},
+            options: {{
+                responsive: true,
+                plugins: {{
+                    title: {{
+                        display: true,
+                        text: 'Price Trends Over Time'
+                    }}
+                }}
+            }}
+        }});
+
+        const countCtx = document.getElementById('countChart').getContext('2d');
+        new Chart(countCtx, {{
+            type: 'bar',
+            data: {{
+                labels: labels,
+                datasets: [{{
+                    label: 'Result Count',
+                    data: {json.dumps(counts)},
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1
+                }}]
+            }},
+            options: {{
+                responsive: true,
+                plugins: {{
+                    title: {{
+                        display: true,
+                        text: 'Available Results Count Over Time'
+                    }}
+                }}
+            }}
+        }});
+    </script>
+    """
+    
+    with open(f"{filename}.html", 'w') as f:
+        f.write("<html>\n<head><title>Airbnb Monitor Report</title></head>\n<body>\n")
+        f.write("<h1>Airbnb Monitor Report</h1>\n")
+        f.write('<div style="width: 80%; margin: auto;">\n')
+        f.write('  <canvas id="priceChart"></canvas>\n')
+        f.write('</div>\n')
+        f.write('<div style="width: 80%; margin: auto; margin-top: 50px;">\n')
+        f.write('  <canvas id="countChart"></canvas>\n')
+        f.write('</div>\n')
+        f.write(chart_js_script)
         f.write("\n</body>\n</html>")
