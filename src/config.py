@@ -6,6 +6,7 @@ CONFIG_FILE = "config.json"
 
 DEFAULT_CONFIG = {
     "bnb_url": "https://www.airbnb.ca/",
+    "ntfy_sh_url": "https://ntfy.sh/",
     "output_file": "results",
     "database_file": "bnb_monitor.db",
     "currency": "CAD",
@@ -17,6 +18,10 @@ DEFAULT_CONFIG = {
         "adult_count": None,
         "price_min": 0,
         "price_max": None
+    },
+    "notifications": {
+        "target_price": None,
+        "ntfy_sh_topic_id": None
     }
 }
 

@@ -37,9 +37,53 @@ def init_db(config):
             FOREIGN KEY (search_id) REFERENCES searches (id)
         )
     ''')
+
+    # Track notified listings to avoid duplicates
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS notified_listings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room_id TEXT,
+            checkin TEXT,
+            checkout TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(room_id, checkin, checkout)
+        )
+    ''')
     
     conn.commit()
     conn.close()
+
+def is_already_notified(config, room_id, checkin, checkout):
+    db_path = get_db_path(config)
+    if not os.path.exists(db_path):
+        return False
+    
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT 1 FROM notified_listings 
+        WHERE room_id = ? AND checkin = ? AND checkout = ?
+    ''', (str(room_id), checkin, checkout))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+def mark_as_notified(config, room_id, checkin, checkout):
+    db_path = get_db_path(config)
+    init_db(config)
+    
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT OR IGNORE INTO notified_listings (room_id, checkin, checkout)
+            VALUES (?, ?, ?)
+        ''', (str(room_id), checkin, checkout))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+    finally:
+        conn.close()
 
 def list_searches(config):
     db_path = get_db_path(config)

@@ -7,6 +7,7 @@ from src.scraper import get_results
 from src.processor import db_results_to_df, style_df, db_results_to_monitor_df
 from src.exporter import export_to_file, html_make_clickable, export_monitor_report
 from src.database import reset_db, save_search_results, list_searches, get_results_by_search_id, get_all_results_with_metadata
+from src.notifier import check_and_notify
 
 def run_search_and_save(config):
     params = config["search_parameters"]
@@ -32,6 +33,10 @@ Search Box (bounding box): {params['search_box']}
     print(f"Found {len(results)} results. Saving to database...")
     save_search_results(config, results)
     print("Search completed and results saved to database.")
+
+    # Check for target price and notify
+    check_and_notify(config, results)
+
     return True
 
 def main():
