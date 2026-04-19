@@ -4,9 +4,9 @@ import time
 import os
 from src.config import load_config
 from src.scraper import get_results
-from src.processor import db_results_to_df, style_df, db_results_to_monitor_df
+from src.processor import db_results_to_df, style_df, db_results_to_monitor_df, is_search_result_identical
 from src.exporter import export_to_file, html_make_clickable, export_monitor_report
-from src.database import reset_db, save_search_results, list_searches, get_results_by_search_id, get_all_results_with_metadata
+from src.database import reset_db, save_search_results, list_searches, get_results_by_search_id, get_all_results_with_metadata, get_last_search
 from src.notifier import check_and_notify
 
 def run_search_and_save(config):
@@ -29,6 +29,16 @@ Search Box (bounding box): {params['search_box']}
     if not results:
         print("No results found for the given parameters.")
         return False
+
+    # Check if results are different from the last search
+    last_search = get_last_search(config)
+    if last_search:
+        old_results = get_results_by_search_id(config, last_search['id'])
+        if is_search_result_identical(results, old_results, params, last_search, config):
+            print("Search results are identical to the previous search. Skipping database log.")
+            # Still check for target price and notify even if not saving to DB
+            check_and_notify(config, results)
+            return True
 
     print(f"Found {len(results)} results. Saving to database...")
     save_search_results(config, results)

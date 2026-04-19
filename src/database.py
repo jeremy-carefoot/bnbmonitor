@@ -85,6 +85,19 @@ def mark_as_notified(config, room_id, checkin, checkout):
     finally:
         conn.close()
 
+def get_last_search(config):
+    db_path = get_db_path(config)
+    if not os.path.exists(db_path):
+        return None
+    
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM searches ORDER BY id DESC LIMIT 1')
+    row = cursor.fetchone()
+    conn.close()
+    return row
+
 def list_searches(config):
     db_path = get_db_path(config)
     if not os.path.exists(db_path):

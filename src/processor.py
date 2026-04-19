@@ -1,4 +1,65 @@
 import pandas as pd
+import json
+
+def is_search_result_identical(new_results, old_db_results, new_params, old_db_search_row, config):
+    # 1. Compare parameters
+    params_match = (
+        old_db_search_row["checkin"] == new_params["checkin"] and
+        old_db_search_row["checkout"] == new_params["checkout"] and
+        old_db_search_row["adult_count"] == new_params["adult_count"] and
+        old_db_search_row["price_min"] == new_params["price_min"] and
+        old_db_search_row["price_max"] == new_params["price_max"] and
+        old_db_search_row["search_box"] == json.dumps(new_params["search_box"])
+    )
+    
+    if not params_match:
+        return False
+
+    # 2. Compare results
+    if len(new_results) != len(old_db_results):
+        return False
+
+    # Format new results to match DB format for easy comparison
+    bnb_url = config["bnb_url"]
+    get_total_fn = lambda x: x["price"]["break_down"][-1]["amount"]
+    
+    formatted_new = []
+    for item in new_results:
+        rating = item.get("rating", {}).get("value")
+        bed_count = ""
+        primary_line = item.get("structuredContent", {}).get("primaryLine", [])
+        if primary_line:
+            bed_count = primary_line[-1].get("body", "")
+        
+        name = item.get("name")
+        room_url = f"{bnb_url}rooms/{item.get('room_id')}"
+        total_price = get_total_fn(item)
+        
+        formatted_new.append({
+            "name": name,
+            "rating": rating,
+            "bed_count": bed_count,
+            "room_url": room_url,
+            "total_price": float(total_price)
+        })
+
+    # Convert old_db_results to list of dicts if they are sqlite3.Row
+    formatted_old = []
+    for row in old_db_results:
+        formatted_old.append({
+            "name": row["name"],
+            "rating": row["rating"],
+            "bed_count": row["bed_count"],
+            "room_url": row["room_url"],
+            "total_price": float(row["total_price"])
+        })
+
+    # Sort both to ensure order-independent comparison
+    sort_key = lambda x: (x["room_url"], x["total_price"])
+    formatted_new.sort(key=sort_key)
+    formatted_old.sort(key=sort_key)
+
+    return formatted_new == formatted_old
 
 def db_results_to_df(db_rows):
     headers = ["Name", "Rating", "Bed Count", "URL", "Total Price"]
