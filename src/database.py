@@ -185,9 +185,11 @@ def save_search_results(config, results):
     for item in results:
         rating = item.get("rating", {}).get("value")
         bed_count = ""
-        primary_line = item.get("structuredContent", {}).get("primaryLine", [])
-        if primary_line:
-            bed_count = primary_line[-1].get("body", "")
+        primary_lines = item.get("structuredContent", {}).get("primaryLine", [])
+        bed_line = next((line for line in primary_lines if "beds" in line["body"]), None)
+
+        if bed_line:
+            bed_count = bed_line.get("body", "")
         
         name = item.get("name")
         room_url = f"{bnb_url}rooms/{item.get('room_id')}"
